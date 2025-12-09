@@ -1,0 +1,47 @@
+{
+  "example_field": "This is a sample input for the skill template",
+  "description": "Replace this with actual input data for your skill",
+  "items": [
+    {
+      "id": "item-1",
+      "type": "security_config",
+      "data": {
+        "setting": "enable_encryption",
+        "value": true
+      },
+      "metadata": {
+        "source": "config_file",
+        "timestamp": "2024-01-01T12:00:00Z"
+      }
+    },
+    {
+      "id": "item-2",
+      "type": "security_config",
+      "data": {
+        "setting": "allow_weak_passwords",
+        "value": true
+      },
+      "metadata": {
+        "source": "config_file",
+        "timestamp": "2024-01-01T12:00:00Z"
+      }
+    },
+    {
+      "id": "item-3",
+      "type": "security_config",
+      "data": {
+        "setting": "enable_logging",
+        "value": true
+      },
+      "metadata": {
+        "source": "config_file",
+        "timestamp": "2024-01-01T12:00:00Z"
+      }
+    }
+  ],
+  "metadata": {
+    "version": "1.0",
+    "created": "2024-01-01T12:00:00Z",
+    "source": "template_example"
+  }
+}

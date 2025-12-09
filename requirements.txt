@@ -1,0 +1,29 @@
+# Common dependencies for Claude Skills for Cybersecurity
+# Install with: pip install -r requirements.txt
+
+# Core Python utilities
+requests>=2.28.0
+python-dateutil>=2.8.0
+click>=8.0.0
+
+# Data processing and validation
+pydantic>=1.10.0
+jsonschema>=4.0.0
+PyYAML>=6.0
+
+# Security-related packages
+cryptography>=37.0.0
+
+# Optional: Data analysis (many security skills benefit from these)
+pandas>=1.5.0
+numpy>=1.21.0
+
+# Optional: Network analysis
+ipaddress  # Built-in but good to specify for clarity
+
+# Development and testing dependencies
+pytest>=7.0.0
+pytest-cov>=4.0.0
+
+# Note: Individual skills may have additional dependencies
+# Check each skill's requirements.txt for specific needs

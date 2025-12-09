@@ -1,0 +1,111 @@
+name: 🐛 Bug Report
+description: Report a bug or unexpected behavior in a cybersecurity skill
+title: "[BUG] "
+labels: ["bug", "needs-triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report! 🛡️
+        
+        **Security Note**: If this is a security vulnerability, please DO NOT create a public issue. 
+        Instead, email us at security@[project-email].com for responsible disclosure.
+
+  - type: input
+    id: skill-name
+    attributes:
+      label: Skill Name
+      description: Which skill is affected by this bug?
+      placeholder: e.g., stix2-validator, cve-analyzer
+    validations:
+      required: true
+
+  - type: textarea
+    id: bug-description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is
+      placeholder: Describe what happened...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+      placeholder: Describe what should have happened...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: How can we reproduce this bug?
+      placeholder: |
+        1. Run command '...'
+        2. Use input data '...'
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: error-output
+    attributes:
+      label: Error Output
+      description: If applicable, paste the error message or output
+      render: shell
+      placeholder: Paste error output here (remove any sensitive information)
+
+  - type: input
+    id: python-version
+    attributes:
+      label: Python Version
+      description: What version of Python are you using?
+      placeholder: e.g., 3.9.7
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating System
+      description: What OS are you using?
+      placeholder: e.g., Ubuntu 20.04, macOS 12.0, Windows 10
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment Details
+      description: Any relevant environment information
+      placeholder: |
+        - Claude platform: (Claude.ai, Claude Code, API)
+        - Installed packages: (pip list or requirements.txt content)
+        - Any relevant configuration
+
+  - type: textarea
+    id: sample-data
+    attributes:
+      label: Sample Input Data (Optional)
+      description: If relevant, provide sample data that reproduces the issue (anonymized/synthetic only)
+      render: json
+      placeholder: Provide synthetic test data if helpful
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submission Checks
+      options:
+        - label: I have searched existing issues to ensure this is not a duplicate
+          required: true
+        - label: I have removed any sensitive information from this report
+          required: true
+        - label: I have tested this with the latest version of the skill
+          required: true
+        - label: This is not a security vulnerability (I would report those privately)
+          required: true

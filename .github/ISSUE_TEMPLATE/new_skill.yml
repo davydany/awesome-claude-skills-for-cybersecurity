@@ -1,0 +1,194 @@
+name: 🆕 New Skill Proposal
+description: Propose a new cybersecurity skill for the community
+title: "[NEW SKILL] "
+labels: ["new-skill", "enhancement", "needs-triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for proposing a new cybersecurity skill! 🛡️
+        
+        This template helps ensure new skills meet community standards and provide value to security professionals.
+
+  - type: input
+    id: skill-name
+    attributes:
+      label: Skill Name
+      description: What would you call this skill?
+      placeholder: e.g., "aws-guardduty-analyzer", "malware-family-classifier"
+    validations:
+      required: true
+
+  - type: textarea
+    id: skill-description
+    attributes:
+      label: Skill Description
+      description: What does this skill do? (1-2 sentences)
+      placeholder: A clear, concise description of the skill's purpose and capabilities
+    validations:
+      required: true
+
+  - type: dropdown
+    id: security-domain
+    attributes:
+      label: Security Domain
+      description: Which security domain does this skill belong to?
+      options:
+        - Threat Intelligence & Analysis
+        - Vulnerability Assessment
+        - Security Monitoring & SIEM
+        - Network Security
+        - Application Security
+        - Cloud Security
+        - Incident Response
+        - Compliance & Governance
+        - Cryptography & PKI
+        - Cross-Domain
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-cases
+    attributes:
+      label: Primary Use Cases
+      description: What are the main scenarios where security professionals would use this skill?
+      placeholder: |
+        • Use case 1: Description
+        • Use case 2: Description
+        • Use case 3: Description
+    validations:
+      required: true
+
+  - type: textarea
+    id: input-data
+    attributes:
+      label: Input Data Types
+      description: What kind of data does this skill process?
+      placeholder: |
+        e.g., JSON logs, CSV files, API responses, STIX bundles, etc.
+        Include examples of data formats if helpful
+    validations:
+      required: true
+
+  - type: textarea
+    id: output-format
+    attributes:
+      label: Expected Output
+      description: What would the output look like?
+      placeholder: |
+        Describe the output format and what information it would provide.
+        Include example output structure if possible.
+    validations:
+      required: true
+
+  - type: textarea
+    id: technical-approach
+    attributes:
+      label: Technical Approach
+      description: How would this skill work technically?
+      placeholder: |
+        • What libraries/APIs would be used?
+        • Any specific algorithms or methodologies?
+        • Integration with external services?
+        • Processing steps?
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies & Requirements
+      description: What would be needed to implement this skill?
+      placeholder: |
+        • Python packages
+        • External APIs or services
+        • Credentials or access tokens
+        • Minimum system requirements
+        • Network access requirements
+
+  - type: textarea
+    id: existing-alternatives
+    attributes:
+      label: Existing Alternatives
+      description: Are there existing tools or skills that do similar things? How is this different?
+      placeholder: |
+        List any existing tools and explain:
+        • How this skill would be different/better
+        • What gap it fills
+        • Why Claude Skills approach adds value
+
+  - type: dropdown
+    id: complexity
+    attributes:
+      label: Implementation Complexity
+      description: How complex would this skill be to implement?
+      options:
+        - Simple (basic data processing, single library)
+        - Medium (multiple components, some complexity)
+        - Complex (advanced algorithms, multiple integrations)
+        - Very Complex (research needed, cutting-edge techniques)
+
+  - type: textarea
+    id: security-considerations
+    attributes:
+      label: Security Considerations
+      description: What security aspects should be considered?
+      placeholder: |
+        • Data handling and privacy
+        • Required permissions
+        • Network security
+        • Potential risks or misuse
+        • Compliance considerations
+
+  - type: textarea
+    id: community-value
+    attributes:
+      label: Community Value
+      description: How would this benefit the security community?
+      placeholder: |
+        • Who would use this skill?
+        • What problems does it solve?
+        • Time/effort savings?
+        • Skill level required to use?
+
+  - type: checkboxes
+    id: implementation-status
+    attributes:
+      label: Implementation Status
+      options:
+        - label: I have a working prototype or proof of concept
+          required: false
+        - label: I'm planning to implement this skill myself
+          required: false
+        - label: I'm looking for someone else to implement this
+          required: false
+        - label: I need help with the technical design
+          required: false
+
+  - type: checkboxes
+    id: requirements
+    attributes:
+      label: Skill Requirements Checklist
+      options:
+        - label: This skill is for defensive security purposes only
+          required: true
+        - label: This skill would be useful to multiple organizations
+          required: true
+        - label: I can provide sample input data (synthetic/anonymized)
+          required: true
+        - label: I understand this skill will be open source (MIT license)
+          required: true
+        - label: I've checked that similar functionality doesn't already exist
+          required: true
+
+  - type: textarea
+    id: additional-info
+    attributes:
+      label: Additional Information
+      description: Anything else you'd like to add?
+      placeholder: |
+        • Links to relevant documentation
+        • Related research papers
+        • Examples from other tools
+        • Timeline considerations
+        • Collaboration offers

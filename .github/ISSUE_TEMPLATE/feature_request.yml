@@ -1,0 +1,146 @@
+name: ✨ Feature Request
+description: Suggest a new feature or enhancement for cybersecurity skills
+title: "[FEATURE] "
+labels: ["enhancement", "needs-triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a feature! 🚀
+        
+        Please make sure your feature request aligns with defensive security use cases only.
+
+  - type: dropdown
+    id: feature-type
+    attributes:
+      label: Feature Type
+      description: What type of feature are you requesting?
+      options:
+        - New Cybersecurity Skill
+        - Enhancement to Existing Skill
+        - Infrastructure/Tooling Improvement
+        - Documentation Enhancement
+        - Integration with Security Tools
+        - Performance Improvement
+    validations:
+      required: true
+
+  - type: input
+    id: skill-name
+    attributes:
+      label: Related Skill (if applicable)
+      description: If this relates to an existing skill, which one?
+      placeholder: e.g., stix2-validator, cve-analyzer
+
+  - type: textarea
+    id: feature-description
+    attributes:
+      label: Feature Description
+      description: A clear and detailed description of the feature you'd like to see
+      placeholder: Describe the feature in detail...
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use Case & Business Value
+      description: What security problem would this solve? How would it help security professionals?
+      placeholder: |
+        - What specific security challenge does this address?
+        - How would security teams use this feature?
+        - What's the expected benefit or time savings?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed Solution
+      description: How do you envision this feature working?
+      placeholder: |
+        - How would the feature work?
+        - What would the input/output look like?
+        - Any specific implementation ideas?
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Have you considered any alternative approaches?
+      placeholder: Describe any alternative solutions you've thought about
+
+  - type: dropdown
+    id: security-domain
+    attributes:
+      label: Security Domain
+      description: Which security domain does this feature target?
+      options:
+        - Threat Intelligence & Analysis
+        - Vulnerability Assessment
+        - Security Monitoring & SIEM
+        - Network Security
+        - Application Security
+        - Cloud Security
+        - Incident Response
+        - Compliance & Governance
+        - Cryptography & PKI
+        - Cross-Domain/General
+    validations:
+      required: true
+
+  - type: dropdown
+    id: complexity
+    attributes:
+      label: Estimated Complexity
+      description: How complex do you think this feature would be to implement?
+      options:
+        - Simple (minor enhancement, configuration change)
+        - Medium (new functionality, requires some development)
+        - Complex (major new skill, significant development effort)
+        - Not Sure
+
+  - type: textarea
+    id: integration-tools
+    attributes:
+      label: Tool Integration
+      description: Should this integrate with specific security tools or platforms?
+      placeholder: |
+        e.g., Splunk, Elastic Security, AWS Security Hub, etc.
+        List any specific tools this should work with
+
+  - type: textarea
+    id: example-workflow
+    attributes:
+      label: Example Workflow
+      description: Provide an example of how this would be used in practice
+      placeholder: |
+        1. Security analyst receives alert/data
+        2. Runs skill with specific parameters
+        3. Reviews output and takes action
+        4. ...
+
+  - type: checkboxes
+    id: requirements
+    attributes:
+      label: Requirements & Considerations
+      options:
+        - label: This feature is for defensive security purposes only
+          required: true
+        - label: This feature would help multiple security teams (not just mine)
+          required: true
+        - label: I'm willing to help test this feature when implemented
+          required: false
+        - label: I'm willing to contribute to the development of this feature
+          required: false
+        - label: I have checked that similar functionality doesn't already exist
+          required: true
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Add any other context, screenshots, or examples about the feature request
+      placeholder: Any additional information that would be helpful...
