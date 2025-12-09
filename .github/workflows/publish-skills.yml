@@ -1,0 +1,405 @@
+name: Publish Skills
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - '*/SKILL.md'
+      - '*/scripts/**'
+      - '*/examples/**'
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      skill_name:
+        description: 'Specific skill to publish (leave empty for all)'
+        required: false
+        type: string
+      force_publish:
+        description: 'Force republish even if no changes detected'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      changed-skills: ${{ steps.changes.outputs.skills }}
+      all-skills: ${{ steps.list-skills.outputs.skills }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed skills
+        id: changes
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ -n "${{ github.event.inputs.skill_name }}" ]; then
+            # Manual trigger with specific skill
+            echo "skills=[\"${{ github.event.inputs.skill_name }}\"]" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" == "release" ] || [ "${{ github.event.inputs.force_publish }}" == "true" ]; then
+            # Release or force publish - publish all skills
+            skills=$(find . -maxdepth 2 -name "SKILL.md" -not -path "./templates/*" | sed 's|./\([^/]*\)/.*|\1|' | sort -u | jq -R -s -c 'split("\n")[:-1]')
+            echo "skills=$skills" >> $GITHUB_OUTPUT
+          else
+            # Regular push - only changed skills
+            changed_files=$(git diff --name-only ${{ github.event.before }}..${{ github.sha }})
+            skills=$(echo "$changed_files" | grep -E '^[^/]+/(SKILL\.md|scripts/|examples/)' | cut -d'/' -f1 | sort -u | grep -v templates | jq -R -s -c 'split("\n")[:-1] | map(select(length > 0))')
+            echo "skills=$skills" >> $GITHUB_OUTPUT
+          fi
+
+      - name: List all skills
+        id: list-skills
+        run: |
+          all_skills=$(find . -maxdepth 2 -name "SKILL.md" -not -path "./templates/*" | sed 's|./\([^/]*\)/.*|\1|' | sort -u | jq -R -s -c 'split("\n")[:-1]')
+          echo "skills=$all_skills" >> $GITHUB_OUTPUT
+
+  validate-skills:
+    needs: detect-changes
+    runs-on: ubuntu-latest
+    if: ${{ needs.detect-changes.outputs.changed-skills != '[]' }}
+    strategy:
+      matrix:
+        skill: ${{ fromJson(needs.detect-changes.outputs.changed-skills) }}
+      fail-fast: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Validate skill structure
+        run: |
+          skill_dir="${{ matrix.skill }}"
+          
+          echo "Validating skill: $skill_dir"
+          
+          # Check required files exist
+          if [ ! -f "$skill_dir/SKILL.md" ]; then
+            echo "❌ Missing SKILL.md in $skill_dir"
+            exit 1
+          fi
+          
+          if [ ! -d "$skill_dir/scripts" ]; then
+            echo "❌ Missing scripts directory in $skill_dir"
+            exit 1
+          fi
+          
+          # Check SKILL.md has required frontmatter
+          if ! grep -q "^---" "$skill_dir/SKILL.md"; then
+            echo "❌ SKILL.md missing frontmatter in $skill_dir"
+            exit 1
+          fi
+          
+          # Extract skill metadata
+          skill_name=$(awk '/^name:/ {print $2}' "$skill_dir/SKILL.md" | tr -d '"')
+          skill_description=$(awk '/^description:/ {for(i=2;i<=NF;i++) printf "%s ", $i; print ""}' "$skill_dir/SKILL.md" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+          
+          if [ -z "$skill_name" ]; then
+            echo "❌ Missing 'name' in SKILL.md frontmatter"
+            exit 1
+          fi
+          
+          if [ -z "$skill_description" ]; then
+            echo "❌ Missing 'description' in SKILL.md frontmatter"
+            exit 1
+          fi
+          
+          echo "✅ Skill validation passed for $skill_dir"
+          echo "  Name: $skill_name"
+          echo "  Description: $skill_description"
+
+      - name: Install skill dependencies
+        run: |
+          skill_dir="${{ matrix.skill }}"
+          if [ -f "$skill_dir/requirements.txt" ]; then
+            pip install -r "$skill_dir/requirements.txt"
+          fi
+
+      - name: Test skill scripts
+        run: |
+          skill_dir="${{ matrix.skill }}"
+          
+          # Find main script
+          main_script=""
+          if [ -f "$skill_dir/scripts/main.py" ]; then
+            main_script="$skill_dir/scripts/main.py"
+          elif [ -f "$skill_dir/scripts/$(basename $skill_dir).py" ]; then
+            main_script="$skill_dir/scripts/$(basename $skill_dir).py"
+          else
+            # Find any Python script
+            main_script=$(find "$skill_dir/scripts" -name "*.py" | head -1)
+          fi
+          
+          if [ -n "$main_script" ] && [ -f "$main_script" ]; then
+            echo "Testing script: $main_script"
+            # Test script syntax
+            python -m py_compile "$main_script"
+            
+            # Test help/usage (if supported)
+            if python "$main_script" --help >/dev/null 2>&1; then
+              echo "✅ Script help works"
+            elif python "$main_script" -h >/dev/null 2>&1; then
+              echo "✅ Script help works"
+            else
+              echo "ℹ️ Script doesn't support --help (okay)"
+            fi
+          else
+            echo "⚠️ No Python scripts found to test"
+          fi
+
+  publish-individual-skills:
+    needs: [detect-changes, validate-skills]
+    runs-on: ubuntu-latest
+    if: ${{ needs.detect-changes.outputs.changed-skills != '[]' }}
+    strategy:
+      matrix:
+        skill: ${{ fromJson(needs.detect-changes.outputs.changed-skills) }}
+      fail-fast: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Extract skill metadata
+        id: metadata
+        run: |
+          skill_dir="${{ matrix.skill }}"
+          
+          # Extract metadata from SKILL.md frontmatter
+          skill_name=$(awk '/^name:/ {print $2}' "$skill_dir/SKILL.md" | tr -d '"')
+          skill_description=$(awk '/^description:/ {for(i=2;i<=NF;i++) printf "%s ", $i; print ""}' "$skill_dir/SKILL.md" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+          
+          # Create version based on git info
+          version="1.0.0"
+          if [ "${{ github.event_name }}" == "release" ]; then
+            version="${{ github.event.release.tag_name }}"
+          else
+            commit_count=$(git rev-list --count HEAD -- "$skill_dir")
+            short_sha=$(git rev-parse --short HEAD)
+            version="1.0.${commit_count}-${short_sha}"
+          fi
+          
+          echo "name=$skill_name" >> $GITHUB_OUTPUT
+          echo "description=$skill_description" >> $GITHUB_OUTPUT
+          echo "version=$version" >> $GITHUB_OUTPUT
+          echo "directory=$skill_dir" >> $GITHUB_OUTPUT
+
+      - name: Create skill package
+        run: |
+          skill_dir="${{ matrix.skill }}"
+          skill_name="${{ steps.metadata.outputs.name }}"
+          version="${{ steps.metadata.outputs.version }}"
+          
+          # Create package directory
+          package_dir="dist/${skill_name}-${version}"
+          mkdir -p "$package_dir"
+          
+          # Copy skill files
+          cp -r "$skill_dir"/* "$package_dir/"
+          
+          # Create package metadata
+          cat > "$package_dir/package.json" << EOF
+          {
+            "name": "$skill_name",
+            "version": "$version",
+            "description": "${{ steps.metadata.outputs.description }}",
+            "type": "claude-skill",
+            "repository": {
+              "type": "git",
+              "url": "${{ github.server_url }}/${{ github.repository }}"
+            },
+            "license": "MIT",
+            "created": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "commit": "${{ github.sha }}",
+            "ref": "${{ github.ref }}"
+          }
+          EOF
+          
+          # Create README for the package
+          cat > "$package_dir/README.md" << EOF
+          # $skill_name
+          
+          ${{ steps.metadata.outputs.description }}
+          
+          This is an individual skill package from the [Awesome Claude Skills for Cybersecurity](https://github.com/${{ github.repository }}) collection.
+          
+          ## Installation
+          
+          1. Download this package
+          2. Install dependencies: \`pip install -r requirements.txt\`
+          3. Follow the instructions in SKILL.md
+          
+          ## Usage
+          
+          See SKILL.md for detailed usage instructions.
+          
+          ## Source
+          
+          - Repository: https://github.com/${{ github.repository }}
+          - Skill Directory: $skill_dir
+          - Version: $version
+          - Commit: ${{ github.sha }}
+          
+          ## License
+          
+          MIT License - see LICENSE file for details.
+          EOF
+          
+          # Copy LICENSE from root
+          cp LICENSE "$package_dir/"
+          
+          # Create archive
+          cd dist
+          tar -czf "${skill_name}-${version}.tar.gz" "${skill_name}-${version}"
+          zip -r "${skill_name}-${version}.zip" "${skill_name}-${version}"
+          
+          echo "📦 Created package for $skill_name v$version"
+
+      - name: Upload skill artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: skill-${{ matrix.skill }}-${{ steps.metadata.outputs.version }}
+          path: |
+            dist/${{ steps.metadata.outputs.name }}-${{ steps.metadata.outputs.version }}.tar.gz
+            dist/${{ steps.metadata.outputs.name }}-${{ steps.metadata.outputs.version }}.zip
+          retention-days: 90
+
+  create-skill-index:
+    needs: [detect-changes, publish-individual-skills]
+    runs-on: ubuntu-latest
+    if: always() && needs.detect-changes.outputs.all-skills != '[]'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create skill index
+        run: |
+          mkdir -p dist
+          
+          # Create JSON index of all skills
+          cat > dist/skills-index.json << 'EOF'
+          {
+            "repository": "${{ github.repository }}",
+            "updated": "${{ github.event.head_commit.timestamp }}",
+            "commit": "${{ github.sha }}",
+            "skills": [
+          EOF
+          
+          first=true
+          for skill_dir in $(find . -maxdepth 2 -name "SKILL.md" -not -path "./templates/*" | sed 's|./\([^/]*\)/.*|\1|' | sort -u); do
+            if [ -f "$skill_dir/SKILL.md" ]; then
+              skill_name=$(awk '/^name:/ {print $2}' "$skill_dir/SKILL.md" | tr -d '"')
+              skill_description=$(awk '/^description:/ {for(i=2;i<=NF;i++) printf "%s ", $i; print ""}' "$skill_dir/SKILL.md" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+              
+              if [ "$first" = false ]; then
+                echo "      ," >> dist/skills-index.json
+              fi
+              first=false
+              
+              cat >> dist/skills-index.json << EOF
+              {
+                "name": "$skill_name",
+                "description": "$skill_description",
+                "directory": "$skill_dir",
+                "path": "$skill_dir/SKILL.md",
+                "scripts": "$(find "$skill_dir/scripts" -name "*.py" 2>/dev/null | wc -l) scripts",
+                "examples": "$(find "$skill_dir/examples" -type f 2>/dev/null | wc -l) examples"
+              }
+          EOF
+            fi
+          done
+          
+          cat >> dist/skills-index.json << 'EOF'
+            ]
+          }
+          EOF
+          
+          echo "📝 Created skills index with $(jq '.skills | length' dist/skills-index.json) skills"
+
+      - name: Upload skill index
+        uses: actions/upload-artifact@v4
+        with:
+          name: skills-index
+          path: dist/skills-index.json
+          retention-days: 90
+
+  release-to-github:
+    needs: [detect-changes, publish-individual-skills, create-skill-index]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Upload release assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Upload individual skill packages
+          for artifact_dir in artifacts/skill-*/; do
+            if [ -d "$artifact_dir" ]; then
+              for file in "$artifact_dir"*; do
+                if [ -f "$file" ]; then
+                  echo "Uploading $(basename "$file")"
+                  gh release upload "${{ github.event.release.tag_name }}" "$file" --repo "${{ github.repository }}"
+                fi
+              done
+            fi
+          done
+          
+          # Upload skills index
+          if [ -f "artifacts/skills-index/skills-index.json" ]; then
+            gh release upload "${{ github.event.release.tag_name }}" "artifacts/skills-index/skills-index.json" --repo "${{ github.repository }}"
+          fi
+
+  notify-completion:
+    needs: [detect-changes, validate-skills, publish-individual-skills, create-skill-index]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Summary
+        run: |
+          echo "## 📦 Skills Publication Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.detect-changes.outputs.changed-skills }}" != "[]" ]; then
+            echo "### ✅ Skills Processed" >> $GITHUB_STEP_SUMMARY
+            echo "${{ needs.detect-changes.outputs.changed-skills }}" | jq -r '.[]' | while read skill; do
+              echo "- $skill" >> $GITHUB_STEP_SUMMARY
+            done
+          else
+            echo "### ℹ️ No skills changed" >> $GITHUB_STEP_SUMMARY
+            echo "No skills were modified in this commit." >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Validation Results" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.validate-skills.result }}" == "success" ]; then
+            echo "✅ All skills passed validation" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.validate-skills.result }}" == "failure" ]; then
+            echo "❌ Some skills failed validation" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⏭️ Validation skipped (no changes)" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🚀 Publication Results" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.publish-individual-skills.result }}" == "success" ]; then
+            echo "✅ Skills published successfully" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.publish-individual-skills.result }}" == "failure" ]; then
+            echo "❌ Some skills failed to publish" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⏭️ Publication skipped (no changes)" >> $GITHUB_STEP_SUMMARY
+          fi

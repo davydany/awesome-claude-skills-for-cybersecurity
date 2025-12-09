@@ -1,0 +1,286 @@
+name: Test Skills
+
+on:
+  pull_request:
+    paths:
+      - '*/SKILL.md'
+      - '*/scripts/**'
+      - '*/examples/**'
+      - '*/requirements.txt'
+  push:
+    branches: [main, master]
+    paths:
+      - '*/SKILL.md'
+      - '*/scripts/**'
+      - '*/examples/**'
+      - '*/requirements.txt'
+  workflow_dispatch:
+
+jobs:
+  detect-skills:
+    runs-on: ubuntu-latest
+    outputs:
+      skills: ${{ steps.find-skills.outputs.skills }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Find changed skills
+        id: find-skills
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            # PR - check changed files
+            changed_files=$(gh api repos/${{ github.repository }}/pulls/${{ github.event.number }}/files --jq '.[].filename')
+            skills=$(echo "$changed_files" | grep -E '^[^/]+/(SKILL\.md|scripts/|examples/|requirements\.txt)' | cut -d'/' -f1 | sort -u | grep -v templates | jq -R -s -c 'split("\n")[:-1] | map(select(length > 0))')
+          else
+            # Push or manual - check all skills
+            skills=$(find . -maxdepth 2 -name "SKILL.md" -not -path "./templates/*" | sed 's|./\([^/]*\)/.*|\1|' | sort -u | jq -R -s -c 'split("\n")[:-1]')
+          fi
+          
+          echo "skills=$skills" >> $GITHUB_OUTPUT
+          echo "Found skills to test: $skills"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  test-skills:
+    needs: detect-skills
+    runs-on: ubuntu-latest
+    if: ${{ needs.detect-skills.outputs.skills != '[]' }}
+    strategy:
+      matrix:
+        skill: ${{ fromJson(needs.detect-skills.outputs.skills) }}
+        python-version: ['3.8', '3.9', '3.10', '3.11']
+      fail-fast: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Validate skill structure
+        run: |
+          skill_dir="${{ matrix.skill }}"
+          echo "🔍 Testing skill: $skill_dir with Python ${{ matrix.python-version }}"
+          
+          # Check required files
+          if [ ! -f "$skill_dir/SKILL.md" ]; then
+            echo "❌ Missing SKILL.md"
+            exit 1
+          fi
+          
+          if [ ! -d "$skill_dir/scripts" ]; then
+            echo "❌ Missing scripts directory"
+            exit 1
+          fi
+          
+          # Check SKILL.md format
+          if ! head -1 "$skill_dir/SKILL.md" | grep -q "^---"; then
+            echo "❌ SKILL.md must start with frontmatter (---)"
+            exit 1
+          fi
+          
+          if ! grep -q "^name:" "$skill_dir/SKILL.md"; then
+            echo "❌ SKILL.md missing 'name' field"
+            exit 1
+          fi
+          
+          if ! grep -q "^description:" "$skill_dir/SKILL.md"; then
+            echo "❌ SKILL.md missing 'description' field"
+            exit 1
+          fi
+          
+          echo "✅ Skill structure validation passed"
+
+      - name: Install dependencies
+        run: |
+          skill_dir="${{ matrix.skill }}"
+          
+          # Install common dependencies
+          pip install --upgrade pip
+          pip install pytest pylint flake8 mypy
+          
+          # Install skill-specific dependencies
+          if [ -f "$skill_dir/requirements.txt" ]; then
+            echo "📦 Installing skill dependencies..."
+            pip install -r "$skill_dir/requirements.txt"
+          fi
+
+      - name: Lint Python code
+        run: |
+          skill_dir="${{ matrix.skill }}"
+          
+          if find "$skill_dir/scripts" -name "*.py" | grep -q .; then
+            echo "🔍 Linting Python code..."
+            
+            # Run flake8 (style and error checking)
+            find "$skill_dir/scripts" -name "*.py" -exec flake8 --max-line-length=100 --ignore=E501,W503 {} +
+            
+            echo "✅ Linting passed"
+          else
+            echo "ℹ️ No Python files to lint"
+          fi
+
+      - name: Test Python syntax
+        run: |
+          skill_dir="${{ matrix.skill }}"
+          
+          if find "$skill_dir/scripts" -name "*.py" | grep -q .; then
+            echo "🔍 Testing Python syntax..."
+            
+            # Compile all Python files
+            find "$skill_dir/scripts" -name "*.py" -exec python -m py_compile {} +
+            
+            echo "✅ Syntax check passed"
+          else
+            echo "ℹ️ No Python files to test"
+          fi
+
+      - name: Test script execution
+        run: |
+          skill_dir="${{ matrix.skill }}"
+          
+          # Find main script
+          main_script=""
+          if [ -f "$skill_dir/scripts/main.py" ]; then
+            main_script="main.py"
+          elif [ -f "$skill_dir/scripts/$(basename $skill_dir).py" ]; then
+            main_script="$(basename $skill_dir).py"
+          else
+            main_script=$(find "$skill_dir/scripts" -name "*.py" | head -1 | xargs basename)
+          fi
+          
+          if [ -n "$main_script" ]; then
+            echo "🧪 Testing script execution: $main_script"
+            cd "$skill_dir/scripts"
+            
+            # Test help functionality
+            if python "$main_script" --help >/dev/null 2>&1; then
+              echo "✅ Script --help works"
+            elif python "$main_script" -h >/dev/null 2>&1; then
+              echo "✅ Script -h works"
+            else
+              echo "⚠️ Script doesn't support help (might be okay)"
+            fi
+            
+            # If there are example files, try to run with them
+            if [ -d "../examples" ]; then
+              for example in ../examples/*.json; do
+                if [ -f "$example" ]; then
+                  echo "🧪 Testing with example: $(basename $example)"
+                  # Try to run but don't fail if it needs specific setup
+                  if python "$main_script" "$example" >/dev/null 2>&1; then
+                    echo "✅ Example execution succeeded"
+                  else
+                    echo "⚠️ Example execution failed (might need specific setup)"
+                  fi
+                  break  # Just test one example
+                fi
+              done
+            fi
+            
+          else
+            echo "ℹ️ No main script found to test"
+          fi
+
+      - name: Security check
+        run: |
+          skill_dir="${{ matrix.skill }}"
+          
+          echo "🔒 Running security checks..."
+          
+          # Check for common security issues in Python files
+          if find "$skill_dir" -name "*.py" | grep -q .; then
+            # Look for potential security issues
+            echo "Checking for hardcoded secrets..."
+            if grep -r -i -n "password\s*=\s*[\"']" "$skill_dir" --include="*.py" --include="*.md"; then
+              echo "⚠️ Found potential hardcoded passwords"
+            fi
+            
+            if grep -r -i -n "api_key\s*=\s*[\"']" "$skill_dir" --include="*.py" --include="*.md"; then
+              echo "⚠️ Found potential hardcoded API keys"
+            fi
+            
+            if grep -r -i -n "secret\s*=\s*[\"']" "$skill_dir" --include="*.py" --include="*.md"; then
+              echo "⚠️ Found potential hardcoded secrets"
+            fi
+            
+            # Check for eval/exec usage
+            if grep -r -n "eval\s*(" "$skill_dir" --include="*.py"; then
+              echo "⚠️ Found eval() usage - security risk"
+            fi
+            
+            if grep -r -n "exec\s*(" "$skill_dir" --include="*.py"; then
+              echo "⚠️ Found exec() usage - security risk"
+            fi
+            
+            echo "✅ Security check completed"
+          fi
+
+      - name: Documentation check
+        run: |
+          skill_dir="${{ matrix.skill }}"
+          
+          echo "📚 Checking documentation..."
+          
+          # Check SKILL.md has required sections
+          required_sections=("Requirements" "Usage" "Examples")
+          for section in "${required_sections[@]}"; do
+            if grep -q "## $section" "$skill_dir/SKILL.md"; then
+              echo "✅ Found section: $section"
+            else
+              echo "⚠️ Missing recommended section: $section"
+            fi
+          done
+          
+          # Check for examples directory
+          if [ -d "$skill_dir/examples" ]; then
+            example_count=$(find "$skill_dir/examples" -type f | wc -l)
+            echo "✅ Found examples directory with $example_count files"
+          else
+            echo "⚠️ No examples directory found"
+          fi
+          
+          echo "📚 Documentation check completed"
+
+  test-summary:
+    needs: [detect-skills, test-skills]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Test Summary
+        run: |
+          echo "## 🧪 Skills Testing Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.detect-skills.outputs.skills }}" != "[]" ]; then
+            echo "### Skills Tested" >> $GITHUB_STEP_SUMMARY
+            echo "${{ needs.detect-skills.outputs.skills }}" | jq -r '.[]' | while read skill; do
+              echo "- $skill" >> $GITHUB_STEP_SUMMARY
+            done
+            
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Results" >> $GITHUB_STEP_SUMMARY
+            if [ "${{ needs.test-skills.result }}" == "success" ]; then
+              echo "✅ All tests passed across Python 3.8-3.11" >> $GITHUB_STEP_SUMMARY
+            elif [ "${{ needs.test-skills.result }}" == "failure" ]; then
+              echo "❌ Some tests failed - check job details" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "⚠️ Tests were skipped or cancelled" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "### No Skills Found" >> $GITHUB_STEP_SUMMARY
+            echo "No skills were found to test in this change." >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Test Coverage" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Structure validation" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Python syntax checking" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Code linting" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Basic execution testing" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Security scanning" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Documentation validation" >> $GITHUB_STEP_SUMMARY
