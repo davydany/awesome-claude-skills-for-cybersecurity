@@ -1,0 +1,33 @@
+{
+  "name": "Operation GhostShell",
+  "description": "A sophisticated cyber espionage campaign targeting government and defense organizations in Eastern Europe using advanced persistent threat techniques.",
+  "aliases": ["GhostNet", "ShadowOp"],
+  "first_seen": "2023-01-15T00:00:00Z",
+  "last_seen": "2024-01-01T00:00:00Z",
+  "objective": "Espionage and data exfiltration from government networks",
+  "threat_actor": {
+    "name": "GhostBear",
+    "threat_actor_types": ["nation-state"],
+    "description": "Advanced threat actor group with suspected state sponsorship",
+    "sophistication": "expert",
+    "resource_level": "government",
+    "primary_motivation": "organizational-gain",
+    "observed_ttps": ["T1055", "T1003", "T1021.001"]
+  },
+  "malware": [
+    {
+      "name": "GhostRAT",
+      "malware_types": ["remote-access-trojan"],
+      "is_family": false,
+      "description": "Custom RAT used for persistent access and data exfiltration",
+      "capabilities": ["captures-credentials", "exfiltrates-data", "communicates-with-c2"]
+    },
+    {
+      "name": "ShadowLoad",
+      "malware_types": ["downloader"],
+      "is_family": false,
+      "description": "Initial stage downloader that retrieves and executes GhostRAT",
+      "capabilities": ["downloads-file", "drops-file", "evades-av"]
+    }
+  ]
+}

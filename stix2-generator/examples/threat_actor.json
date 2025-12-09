@@ -1,0 +1,27 @@
+{
+  "name": "APT28",
+  "threat_actor_types": ["nation-state"],
+  "description": "APT28 (also known as Fancy Bear, Sofacy, Sednit, and STRONTIUM) is a Russian threat actor group attributed to Russia's General Staff Main Intelligence Directorate (GRU) 85th Main Special Service Center (GTsSS) military unit 26165.",
+  "aliases": ["Fancy Bear", "Sofacy", "Sednit", "STRONTIUM", "Pawn Storm"],
+  "roles": ["agent"],
+  "sophistication": "expert",
+  "resource_level": "government",
+  "primary_motivation": "organizational-gain",
+  "secondary_motivations": ["dominance"],
+  "goals": [
+    "Espionage",
+    "Information gathering",
+    "Disruption of political processes"
+  ],
+  "observed_ttps": [
+    "T1055",
+    "T1003",
+    "T1021.001",
+    "T1566.001",
+    "T1027",
+    "T1053.005",
+    "T1078",
+    "T1090",
+    "T1133"
+  ]
+}

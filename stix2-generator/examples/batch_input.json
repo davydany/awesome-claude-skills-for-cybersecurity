@@ -1,0 +1,50 @@
+{
+  "identity": {
+    "name": "Security Operations Center",
+    "identity_class": "organization",
+    "description": "SOC team generating threat intelligence"
+  },
+  "objects": [
+    {
+      "type": "indicator",
+      "iocs": [
+        "192.0.2.1",
+        "192.0.2.2",
+        "evil-malware.com",
+        "d41d8cd98f00b204e9800998ecf8427e"
+      ],
+      "labels": ["malicious-activity", "command-and-control"],
+      "confidence": 85
+    },
+    {
+      "type": "malware",
+      "name": "CustomRAT",
+      "malware_types": ["remote-access-trojan"],
+      "description": "Custom RAT observed in recent campaign",
+      "capabilities": ["captures-credentials", "exfiltrates-data"]
+    },
+    {
+      "type": "attack-pattern",
+      "mitre_id": "T1055",
+      "name": "Process Injection",
+      "description": "Adversary injecting code into running processes"
+    },
+    {
+      "type": "attack-pattern",
+      "mitre_id": "T1003",
+      "name": "OS Credential Dumping"
+    }
+  ],
+  "relationships": [
+    {
+      "source": "malware/CustomRAT",
+      "relationship": "uses",
+      "target": "attack-pattern/T1055"
+    },
+    {
+      "source": "malware/CustomRAT",
+      "relationship": "uses", 
+      "target": "attack-pattern/T1003"
+    }
+  ]
+}

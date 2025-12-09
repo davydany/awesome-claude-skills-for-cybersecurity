@@ -1,0 +1,34 @@
+# Example IOC list for STIX generation
+# Supports IPs, domains, URLs, emails, and file hashes
+
+# Malicious IP addresses
+192.0.2.1
+192.0.2.2
+198.51.100.10
+2001:db8::dead:beef
+
+# Suspicious domains
+evil-malware.com
+phishing-site.net
+command-control.org
+bad-actor.io
+
+# Malicious URLs
+http://evil-malware.com/payload.exe
+https://phishing-site.net/fake-login
+http://command-control.org/c2
+
+# Email addresses
+malicious@evil.com
+phisher@badguy.net
+
+# File hashes
+# MD5
+d41d8cd98f00b204e9800998ecf8427e
+098f6bcd4621d373cade4e832627b4f6
+
+# SHA-1
+da39a3ee5e6b4b0d3255bfef95601890afd80709
+
+# SHA-256
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

@@ -43,6 +43,7 @@ Claude Skills are customizable workflows that teach Claude how to perform specif
 | Skill | Description | Status |
 |-------|-------------|---------|
 | [STIX 2.1 Validator](./stix2-validator/) | Validate STIX bundles for threat intelligence sharing | ✅ Available |
+| [STIX 2.1 Generator](./stix2-generator/) | Generate STIX objects and bundles from various sources | ✅ Available |
 
 ### 🐛 Vulnerability Assessment
 
