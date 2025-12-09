@@ -41,7 +41,7 @@ This guide will help you get started with Claude Skills for Cybersecurity, from 
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/awesome-claude-skills-for-cybersecurity.git
+git clone https://github.com/davydany/awesome-claude-skills-for-cybersecurity.git
 cd awesome-claude-skills-for-cybersecurity
 ```
 

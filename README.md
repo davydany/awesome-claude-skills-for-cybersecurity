@@ -89,7 +89,7 @@ Coming soon - see [ideas document](docs/skill-ideas.md) for planned skills.
 
 1. Clone this repository:
 ```bash
-git clone https://github.com/yourusername/awesome-claude-skills-for-cybersecurity.git
+git clone https://github.com/davydany/awesome-claude-skills-for-cybersecurity.git
 cd awesome-claude-skills-for-cybersecurity
 ```
 
